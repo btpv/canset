@@ -31,7 +31,6 @@ bool mpu2Available = false;
 bool gpsAvailable = false;
 
 // Global Variables
-unsigned long lmil = millis();
 float initialAltitude = 0;  // To store the initial altitude
 
 void scanI2C() {
@@ -92,17 +91,18 @@ void setup() {
 
   // Start Serial1 for APC220
   Serial1.begin(9600);
+  // Serial1.begin(115200);
   Serial.println("Broadcasting every second to APC220...");
 }
 
 void loop() {
   unsigned long start = millis();
   // GPS Data Handling
-  while (gpsSerial.available() > 0) {
+  Serial.print(gpsSerial.available());
+  Serial.print("\t");
+  while (gpsSerial.available()) {
     gps.encode(gpsSerial.read());
   }
-  Serial.print(millis() - start);
-  Serial.print("\t");
   // GPS Data
   float gpsLatitude = gps.location.isValid() ? gps.location.lat() : 0.0;
   float gpsLongitude = gps.location.isValid() ? gps.location.lng() : 0.0;
@@ -118,7 +118,7 @@ void loop() {
 
   sensors_event_t a1, g1, temp1, a2, g2, temp2, humidity, temp;
   if (aht20Available) {
-    aht.getEvent(&temp, &humidity);
+    aht.getEvent(&humidity,&temp);
   }
   if (mpu1Available) {
     mpu1.getEvent(&a1, &g1, &temp1);
@@ -134,12 +134,12 @@ void loop() {
   float avgGyroX = (g1.gyro.x + g2.gyro.x) / 2.0;
   float avgGyroY = (g1.gyro.y + g2.gyro.y) / 2.0;
   float avgGyroZ = (g1.gyro.z + g2.gyro.z) / 2.0;
-  StaticJsonDocument<1028> data;
+  JsonDocument data;
   // Create telemetry string including GPS and sensor data
   data["TMP_BMP"] = bmpTemperature;
   data["TMP_AHT"] = temp.temperature;
-  data["TMP_MPU1"] =  temp1.temperature;
-  data["TMP_MPU2"] =  temp2.temperature;
+  data["TMP_MPU1"] = temp1.temperature-18;
+  data["TMP_MPU2"] = temp2.temperature-18;
   data["PRS"] = pressure;
   data["ALT"] = altitude;
   data["AX"] = avgAccelX;
@@ -156,8 +156,6 @@ void loop() {
   data["DIR"] = gpsDirection;
   data["MST"] = humidity.relative_humidity;
   data["TS"] = millis();
-  Serial.print(millis() - start);
-  Serial.print("\t");
   while (Serial1.available()) {
     String input = Serial1.readStringUntil('\n');
     StaticJsonDocument<128> inputJson;
@@ -170,29 +168,19 @@ void loop() {
       Serial.print("Invalid JSON: \"");
       Serial.print(input);
       Serial.print("\"error: ");
-      Serial.print(error.c_str());
+      Serial.println(error.c_str());
     }
   }
-  Serial.print(millis() - start);
-  Serial.print("\t");
   char buffer[512];
   size_t len = serializeJson(data, buffer, sizeof(buffer));
-  Serial.print(millis() - start);
-  Serial.print("\t");
   Serial1.write(buffer, len);
   Serial1.println();
-  Serial.println(millis() - start);
-  // serializeJson(data, Serial);
-  // Serial.println();
-
-
-  // Wait for the next cycle
-  // while (millis() - lmil < 20)
-  //   ;
-  // delay(50);
-  lmil = millis();
-  if ((millis() - start) < 250) {
-    delay(250 - (millis() - start));
+  Serial.print(millis() - start);
+  Serial.print(" ");
+  while (abs(millis() - start) < 350) {
+    if (gpsSerial.available()) {
+      gps.encode(gpsSerial.read());
+    }
   }
-
+  Serial.println(millis() - start);
 }
