@@ -7,6 +7,7 @@
 #include <SoftwareSerial.h>
 #include <ArduinoJson.h>
 #include <Adafruit_AHTX0.h>
+#include <RS-FEC.h>
 
 // Sensor Objects
 Adafruit_BMP280 bmp;
@@ -118,7 +119,7 @@ void loop() {
 
   sensors_event_t a1, g1, temp1, a2, g2, temp2, humidity, temp;
   if (aht20Available) {
-    aht.getEvent(&humidity,&temp);
+    aht.getEvent(&humidity, &temp);
   }
   if (mpu1Available) {
     mpu1.getEvent(&a1, &g1, &temp1);
@@ -138,8 +139,8 @@ void loop() {
   // Create telemetry string including GPS and sensor data
   data["TMP_BMP"] = bmpTemperature;
   data["TMP_AHT"] = temp.temperature;
-  data["TMP_MPU1"] = temp1.temperature-18;
-  data["TMP_MPU2"] = temp2.temperature-18;
+  data["TMP_MPU1"] = temp1.temperature - 18;
+  data["TMP_MPU2"] = temp2.temperature - 18;
   data["PRS"] = pressure;
   data["ALT"] = altitude;
   data["AX"] = avgAccelX;
@@ -171,9 +172,17 @@ void loop() {
       Serial.println(error.c_str());
     }
   }
+
   char buffer[512];
   size_t len = serializeJson(data, buffer, sizeof(buffer));
-  Serial1.write(buffer, len);
+  int i = 0;
+  while (i < len){
+    if ((i & 31) == 0) { // Delay every 32 bytes
+      delay(20);
+    }
+    Serial1.write(buffer[i]);
+    i++;
+  }
   Serial1.println();
   Serial.print(millis() - start);
   Serial.print(" ");
