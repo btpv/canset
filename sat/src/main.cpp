@@ -7,7 +7,6 @@
 #include <SoftwareSerial.h>
 #include <ArduinoJson.h>
 #include <Adafruit_AHTX0.h>
-#include <RS-FEC.h>
 
 // Sensor Objects
 Adafruit_BMP280 bmp;
@@ -16,10 +15,9 @@ Adafruit_MPU6050 mpu1;
 Adafruit_MPU6050 mpu2;
 
 
-// GPS pins
 #define GPS_RXPin 7
 #define GPS_TXPin 6
-
+#define senderID 0
 // Create SoftwareSerial instance for GPS communication
 SoftwareSerial gpsSerial(GPS_RXPin, GPS_TXPin);
 TinyGPSPlus gps;  // TinyGPS++ object for parsing GPS data
@@ -33,7 +31,44 @@ bool gpsAvailable = false;
 
 // Global Variables
 float initialAltitude = 0;  // To store the initial altitude
+void sendJson(JsonDocument& data);
+void wait(int ms) {
+  unsigned long start = millis();
+  while (millis() - start > ms) {
+    if (gpsSerial.available()) {
+      gps.encode(gpsSerial.read());
+    }
+  }
+}
+void relayMsg(String input) {
+  StaticJsonDocument<128> jsonData;
+  DeserializationError error = deserializeJson(jsonData, input);
+  if (!error) {
+    if (jsonData.containsKey("senderID") && jsonData["senderID"].as<uint8_t>() != senderID) {
+      jsonData["ogSenderID"] = jsonData["senderID"].as<uint8_t>();
+    }
+  } else {
+    Serial.print("Invalid JSON: \"");
+    Serial.print(input);
+    Serial.print("\"error: ");
+    Serial.println(error.c_str());
+  }
+  sendJson(jsonData);
+}
+void sendJson(JsonDocument& sendData) {
+  char buffer[512];
+  sendData["senderID"] = senderID;
+  size_t len = serializeJson(sendData, buffer, sizeof(buffer));
 
+  const int chunkSize = 32;  // Send 32 bytes at a time
+  for (int i = 0; i < len; i += chunkSize) {
+    int remaining = min(chunkSize, len - i);
+    Serial1.write((uint8_t*)&buffer[i], remaining);
+    wait(50);  // Give APC220 time to process
+  }
+
+  Serial1.println();  // End with a newline
+}
 void scanI2C() {
   Serial.println("\nScanning I2C devices...");
   for (byte address = 1; address < 127; address++) {
@@ -92,15 +127,17 @@ void setup() {
 
   // Start Serial1 for APC220
   Serial1.begin(9600);
-  // Serial1.begin(115200);
   Serial.println("Broadcasting every second to APC220...");
 }
 
 void loop() {
   unsigned long start = millis();
+  while (Serial1.available()) {
+    wait(100);
+    relayMsg(Serial1.readStringUntil('\n'));
+    wait(100);
+  }
   // GPS Data Handling
-  Serial.print(gpsSerial.available());
-  Serial.print("\t");
   while (gpsSerial.available()) {
     gps.encode(gpsSerial.read());
   }
@@ -157,39 +194,7 @@ void loop() {
   data["DIR"] = gpsDirection;
   data["MST"] = humidity.relative_humidity;
   data["TS"] = millis();
-  while (Serial1.available()) {
-    String input = Serial1.readStringUntil('\n');
-    StaticJsonDocument<128> inputJson;
-    DeserializationError error = deserializeJson(inputJson, input);
-    if (!error) {
-      if (inputJson.containsKey("MSG")) {
-        data["MSG"] = inputJson["MSG"].as<String>();
-      }
-    } else {
-      Serial.print("Invalid JSON: \"");
-      Serial.print(input);
-      Serial.print("\"error: ");
-      Serial.println(error.c_str());
-    }
-  }
-
-  char buffer[512];
-  size_t len = serializeJson(data, buffer, sizeof(buffer));
-  int i = 0;
-  while (i < len){
-    if ((i & 31) == 0) { // Delay every 32 bytes
-      delay(20);
-    }
-    Serial1.write(buffer[i]);
-    i++;
-  }
-  Serial1.println();
-  Serial.print(millis() - start);
-  Serial.print(" ");
-  while (abs(millis() - start) < 350) {
-    if (gpsSerial.available()) {
-      gps.encode(gpsSerial.read());
-    }
-  }
+  sendJson(data);
+  delay(500);
   Serial.println(millis() - start);
 }

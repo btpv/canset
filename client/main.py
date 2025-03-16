@@ -1,6 +1,10 @@
+SERIAL_PORT = '/dev/ttyUSB1'
+BAUD_RATE = 9600
+SENDER_ID = 2
+
 from datetime import datetime
 import json
-import platform
+import random
 from time import time
 import tkinter as tk
 from tkinter import ttk
@@ -21,11 +25,6 @@ except:
 with open("config.json") as f:
     graphItems: list[dict[str, str | list[str]]] = json.loads(f.read())
 
-if platform.system() == 'Windows':
-    SERIAL_PORT = 'COM12'
-else:
-    SERIAL_PORT = '/dev/ttyUSB0'
-BAUD_RATE = 9600
 
 class GraphItem:
     def __init__(self, canvas_frame: tk.Frame, name: str, item_pos: int, jsonkey: list[str], max_size: int = 1000, label: list[str] = [""], color: list[str] = ["black"], unit: str = ""):
@@ -101,7 +100,7 @@ class GraphApp:
         self.update()
         if serialMode:
             self.read_serial()
-            self.send_serial()
+            # self.send_serial()
         else:
             self.read_file(int(sys.argv[2]) if len(sys.argv) > 2 else 0)
 
@@ -110,18 +109,24 @@ class GraphApp:
 
     def parse_input(self, raw_data) -> bool:
         try:
-            self.json_data = json.loads(raw_data)
+            self.json_data: dict = json.loads(raw_data)
+            self.json_listbox.insert(0, str(self.json_data))
+            if self.json_data["senderID"] != 0:
+                return True
+            elif "ogSenderID" in self.json_data and self.json_data['ogSenderID'] == SENDER_ID:
+                if "MSG" in self.json_data:
+                    self.msg_listbox.insert(0, f"<<<< {self.json_data['MSG']}")
+                self.send_data = {}
             for item in self.items:
                 item.push(self.json_data)
-            
+            # update right list
             self.tree.delete(*self.tree.get_children())
             for key, value in self.json_data.items():
                 self.tree.insert("", tk.END, values=(key, value))
                 
-            if "MSG" in self.json_data:
-                self.msg_listbox.insert(0, f">> {self.json_data['MSG']}")
+            if "MSG" in self.json_data and "ogSenderID" in self.json_data:
+                self.msg_listbox.insert(0, f">{self.json_data['ogSenderID']:03d}> {self.json_data['MSG']}")
                 print(self.json_data["MSG"])
-            self.json_listbox.insert(0, str(self.json_data))
             return True
         except json.JSONDecodeError:
             print(f"Invalid JSON data received: {raw_data}")
@@ -135,18 +140,24 @@ class GraphApp:
         self.root.after(delay, self.read_file, (delay,))
 
     def send_serial(self):
+        # self.root.after(500, self.send_serial)
+        if self.send_data == {}:
+            return
+        self.send_data["senderID"] = SENDER_ID
+        if self.serial.in_waiting > 0:
+            return
         self.serial.write((json.dumps(self.send_data) + "\n").encode())
-        if "MSG" in self.send_data:
-            self.msg_listbox.insert(0, f"<< {self.send_data['MSG']}")
-            del self.send_data["MSG"]
-        self.root.after(100, self.send_serial)
+        print(json.dumps(self.send_data))
+        # self.send_data = {}
 
     def read_serial(self):
-        while self.serial.in_waiting > 0:
-            raw_data = self.serial.readline().decode('utf-8', errors='ignore')
-            logfile.write(raw_data)
-            self.parse_input(raw_data)
-        self.root.after(500, self.read_serial)
+        self.root.after(50, self.read_serial)
+        if self.serial.in_waiting == 0:
+            return
+        raw_data = self.serial.readline().decode('utf-8', errors='ignore')
+        logfile.write(raw_data)
+        self.parse_input(raw_data)
+        self.root.after(random.randint(5,30), self.send_serial)
 
     def update(self):
         for item in self.items:
