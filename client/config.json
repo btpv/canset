@@ -1,117 +1,122 @@
-[
-    {
-        "name": "Altitude",
-        "label": [
-            "Altitude (m)",
-            "Altitude gps (m)"
-        ],
-        "jsonkey": [
-            "ALT",
-            "GPS_ALT"
-        ],
-        "color": [
-            "orange",
-            "blue"
-        ],
-        "unit": "Meters"
-    },
-    {
-        "name": "Speed",
-        "label": [
-            "Speed (km/h)"
-        ],
-        "jsonkey": [
-            "SPD"
-        ],
-        "color": [
-            "blue"
-        ],
-        "unit": "km/h"
-    },
-    {
-        "name": "Air Pressure",
-        "label": [
-            "Pressure (hPa)"
-        ],
-        "jsonkey": [
-            "PRS"
-        ],
-        "color": [
-            "purple"
-        ],
-        "unit": "hPa"
-    },
-    {
-        "name": "Temperature",
-        "label": [
-            "Temperature (°C)",
-            "Temperature (°C)",
-            "Temperature (°C)",
-            "Temperature (°C)"
-        ],
-        "jsonkey": [
-            "TMP_BMP",
-            "TMP_AHT",
-            "TMP_MPU1",
-            "TMP_MPU2"
-        ],
-        "color": [
-            "red",
-            "orange",
-            "blue",
-            "cyan"
-        ],
-        "unit": "°C"
-    },
-    {
-        "name": "Humidity",
-        "label": [
-            "Relative humidity (% rH)"
-        ],
-        "jsonkey": [
-            "MST"
-        ],
-        "color": [
-            "pink"
-        ],
-        "unit": "% rH"
-    },
-    {
-        "name": "gyro",
-        "label": [
-            "x (rad/s)",
-            "y (rad/s)",
-            "z (rad/s)"
-        ],
-        "jsonkey": [
-            "GX",
-            "GY",
-            "GZ"
-        ],
-        "color": [
-            "red",
-            "green",
-            "blue"
-        ],
-        "unit": "rad/s"
-    },
-    {
-        "name": "acceleration",
-        "label": [
-            "x (m/s²)",
-            "y (m/s²)",
-            "z (m/s²)"
-        ],
-        "jsonkey": [
-            "AX",
-            "AY",
-            "AZ"
-        ],
-        "color": [
-            "red",
-            "green",
-            "blue"
-        ],
-        "unit": "m/s²"
-    }
-]
+{
+    "serial_port": "/dev/ttyUSB0",
+    "baud_rate": 9600,
+    "sender_id": 1,
+    "graphs": [
+        {
+            "name": "Altitude",
+            "label": [
+                "Altitude (m)",
+                "Altitude gps (m)"
+            ],
+            "jsonkey": [
+                "ALT",
+                "GPS_ALT"
+            ],
+            "color": [
+                "orange",
+                "blue"
+            ],
+            "unit": "Meters"
+        },
+        {
+            "name": "Speed",
+            "label": [
+                "Speed (km/h)"
+            ],
+            "jsonkey": [
+                "SPD"
+            ],
+            "color": [
+                "blue"
+            ],
+            "unit": "km/h"
+        },
+        {
+            "name": "Air Pressure",
+            "label": [
+                "Pressure (hPa)"
+            ],
+            "jsonkey": [
+                "PRS"
+            ],
+            "color": [
+                "purple"
+            ],
+            "unit": "hPa"
+        },
+        {
+            "name": "Temperature",
+            "label": [
+                "Temperature (°C)",
+                "Temperature (°C)",
+                "Temperature (°C)",
+                "Temperature (°C)"
+            ],
+            "jsonkey": [
+                "TMP_BMP",
+                "TMP_AHT",
+                "TMP_MPU1",
+                "TMP_MPU2"
+            ],
+            "color": [
+                "red",
+                "orange",
+                "blue",
+                "cyan"
+            ],
+            "unit": "°C"
+        },
+        {
+            "name": "Humidity",
+            "label": [
+                "Relative humidity (% rH)"
+            ],
+            "jsonkey": [
+                "MST"
+            ],
+            "color": [
+                "pink"
+            ],
+            "unit": "% rH"
+        },
+        {
+            "name": "gyro",
+            "label": [
+                "x (rad/s)",
+                "y (rad/s)",
+                "z (rad/s)"
+            ],
+            "jsonkey": [
+                "GX",
+                "GY",
+                "GZ"
+            ],
+            "color": [
+                "red",
+                "green",
+                "blue"
+            ],
+            "unit": "rad/s"
+        },
+        {
+            "name": "acceleration",
+            "label": [
+                "x (m/s²)",
+                "y (m/s²)",
+                "z (m/s²)"
+            ],
+            "jsonkey": [
+                "AX",
+                "AY",
+                "AZ"
+            ],
+            "color": [
+                "red",
+                "green",
+                "blue"
+            ],
+            "unit": "m/s²"
+        }
+    ]
+}

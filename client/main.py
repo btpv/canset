@@ -1,6 +1,3 @@
-SERIAL_PORT = '/dev/ttyUSB1'
-BAUD_RATE = 9600
-SENDER_ID = 2
 
 from datetime import datetime
 import json
@@ -23,7 +20,11 @@ except:
     serialMode = True
 
 with open("config.json") as f:
-    graphItems: list[dict[str, str | list[str]]] = json.loads(f.read())
+    configjson = json.loads(f.read())
+    serial_port = configjson["serial_port"]
+    baud_rate = configjson["baud_rate"]
+    sender_id = configjson["sender_id"]
+    graphItems: list[dict[str, str | list[str]]] = configjson["graphs"]
 
 
 class GraphItem:
@@ -72,7 +73,7 @@ class GraphApp:
         self.canvas_frame = tk.Frame(root)
         self.canvas_frame.pack()
         if serialMode:
-            self.serial = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
+            self.serial = serial.Serial(serial_port, baud_rate, timeout=1)
         self.items: list[GraphItem] = [GraphItem(self.canvas_frame, item_pos=i, **v) for i, v in enumerate(graphItems)]
         
         self.table_frame = tk.Frame(root,width=50)
@@ -113,7 +114,7 @@ class GraphApp:
             self.json_listbox.insert(0, str(self.json_data))
             if self.json_data["senderID"] != 0:
                 return True
-            elif "ogSenderID" in self.json_data and self.json_data['ogSenderID'] == SENDER_ID:
+            elif "ogSenderID" in self.json_data and self.json_data['ogSenderID'] == sender_id:
                 if "MSG" in self.json_data:
                     self.msg_listbox.insert(0, f"<<<< {self.json_data['MSG']}")
                 self.send_data = {}
@@ -124,7 +125,7 @@ class GraphApp:
             for key, value in self.json_data.items():
                 self.tree.insert("", tk.END, values=(key, value))
                 
-            if "MSG" in self.json_data and "ogSenderID" in self.json_data:
+            if "MSG" in self.json_data and "ogSenderID" in self.json_data and self.json_data['ogSenderID'] != sender_id:
                 self.msg_listbox.insert(0, f">{self.json_data['ogSenderID']:03d}> {self.json_data['MSG']}")
                 print(self.json_data["MSG"])
             return True
@@ -143,7 +144,7 @@ class GraphApp:
         # self.root.after(500, self.send_serial)
         if self.send_data == {}:
             return
-        self.send_data["senderID"] = SENDER_ID
+        self.send_data["senderID"] = sender_id
         if self.serial.in_waiting > 0:
             return
         self.serial.write((json.dumps(self.send_data) + "\n").encode())
